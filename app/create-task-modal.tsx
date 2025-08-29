@@ -52,10 +52,13 @@ const CreateTaskModal = ({ visible, onClose, onCreate }: CreateTaskModalProps) =
     <Modal
       visible={visible}
       transparent
-      animationType="slide"
+      animationType="slide" // Disable animation for the whole Modal
       onRequestClose={onClose}
     >
-      <View style={styles.overlay}>
+      {/* Overlay is static and not animated */}
+      <View style={styles.overlay} />
+      {/* Animated modal content */}
+      <View style={styles.animatedContainer}>
         <View style={styles.modal}>
           <Text style={styles.title}>Create Task</Text>
           <TextInput
@@ -116,9 +119,15 @@ const CreateTaskModal = ({ visible, onClose, onCreate }: CreateTaskModalProps) =
 
 const styles = StyleSheet.create({
   overlay: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 1,
+  },
+  animatedContainer: {
     flex: 1,
     justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    zIndex: 2,
   },
   modal: {
     height: '50%',
