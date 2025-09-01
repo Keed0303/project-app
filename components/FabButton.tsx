@@ -16,7 +16,7 @@ const FabButton = ({ onPress }: FabButtonProps) => {
 const styles = StyleSheet.create({
   fab: {
     position: "absolute",
-    bottom: 20,
+    bottom: 100,
     right: '0%',
     backgroundColor: "#2196F3",
     width: 60,
@@ -29,6 +29,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 3,
+    zIndex: 1
   },
   fabIcon: {
     fontSize: 24,

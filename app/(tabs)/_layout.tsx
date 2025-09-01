@@ -1,3 +1,4 @@
+import TabBar from '@/components/TabBar';
 import { Tabs } from 'expo-router';
 
 const Layout = () => {
@@ -6,6 +7,8 @@ const Layout = () => {
       screenOptions={{
         headerShown: false,
       }}
+
+      tabBar={props => <TabBar {...props} />}
     >
       <Tabs.Screen name="(home)" options={{ title: 'Home', tabBarIcon: () => null }} />
       <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: () => null }} />

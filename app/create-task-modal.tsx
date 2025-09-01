@@ -1,40 +1,49 @@
+import { useTasks } from '@/hooks/useTask';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useState } from 'react';
-import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-interface CreateTaskModalProps {
-  visible: boolean;
-  onCreate: (task: { id: number; title: string; from: string; to: string; description: string }) => void;
-  onClose: () => void;
-}
+const CreateTaskModal = () => {
+  const { addTask } = useTasks();
 
-const CreateTaskModal = ({ visible, onClose, onCreate }: CreateTaskModalProps) => {
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [description, setDescription] = useState("");
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [dateField, setDateField] = useState<'from' | 'to' | null>(null);
-  const [pickerDate, setPickerDate] = useState<Date>(new Date());
 
-  const handleCreate = () => {
-    onCreate({
-      id: Date.now(),
+  // 🔹 extra states for date picker
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [pickerDate, setPickerDate] = useState(new Date());
+  const [dateField, setDateField] = useState<'from' | 'to' | null>(null);
+
+  const handleSubmit = async () => {
+    if (!title || !description) return;
+
+    await addTask({
+      id: Date.now().toString(),
       title,
+      description,
       from,
       to,
-      description,
     });
-    setTitle('');
-    setFrom('');
-    setTo('');
-    setDescription('');
+
+    // reset form after save
+    setTitle("");
+    setDescription("");
+    setFrom("");
+    setTo("");
   };
 
   const handleDateIconPress = (field: 'from' | 'to') => {
     setDateField(field);
-    setPickerDate(field === 'from' && from ? new Date(from) : field === 'to' && to ? new Date(to) : new Date());
+    setPickerDate(
+      field === 'from' && from
+        ? new Date(from)
+        : field === 'to' && to
+        ? new Date(to)
+        : new Date()
+    );
     setShowDatePicker(true);
   };
 
@@ -49,98 +58,73 @@ const CreateTaskModal = ({ visible, onClose, onCreate }: CreateTaskModalProps) =
   };
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide" // Disable animation for the whole Modal
-      onRequestClose={onClose}
-    >
-      {/* Overlay is static and not animated */}
-      <View style={styles.overlay} />
-      {/* Animated modal content */}
-      <View style={styles.animatedContainer}>
-        <View style={styles.modal}>
-          <Text style={styles.title}>Create Task</Text>
+    <View style={styles.modal}>
+      <Text style={styles.title}>Create Task</Text>
+      
+      <TextInput
+        style={styles.input}
+        placeholder="Task title"
+        value={title}
+        onChangeText={setTitle}
+      />
+
+      <View style={styles.row}>
+        <View style={styles.inputWithIcon}>
           <TextInput
-            style={styles.input}
-            placeholder="Task title"
-            value={title}
-            onChangeText={setTitle}
+            style={[styles.input, styles.half, { marginBottom: 0 }]}
+            placeholder="From"
+            value={from}
+            onChangeText={setFrom}
           />
-          <View style={styles.row}>
-            <View style={styles.inputWithIcon}>
-              <TextInput
-                style={[styles.input, styles.half, { marginBottom: 0 }]}
-                placeholder="From"
-                value={from}
-                onChangeText={setFrom}
-              />
-              <TouchableOpacity onPress={() => handleDateIconPress('from')}>
-                <Ionicons name="calendar-outline" size={22} color="#007AFF" />
-              </TouchableOpacity>
-            </View>
-            <View style={styles.inputWithIcon}>
-              <TextInput
-                style={[styles.input, styles.half, { marginBottom: 0 }]}
-                placeholder="To"
-                value={to}
-                onChangeText={setTo}
-              />
-              <TouchableOpacity onPress={() => handleDateIconPress('to')}>
-                <Ionicons name="calendar-outline" size={22} color="#007AFF" />
-              </TouchableOpacity>
-            </View>
-          </View>
+          <TouchableOpacity onPress={() => handleDateIconPress('from')}>
+            <Ionicons name="calendar-outline" size={22} color="#007AFF" />
+          </TouchableOpacity>
+        </View>
+
+        <View style={styles.inputWithIcon}>
           <TextInput
-            style={styles.input}
-            placeholder="Description"
-            value={description}
-            onChangeText={setDescription}
+            style={[styles.input, styles.half, { marginBottom: 0 }]}
+            placeholder="To"
+            value={to}
+            onChangeText={setTo}
           />
-          <TouchableOpacity style={styles.button} onPress={handleCreate}>
-            <Text style={styles.buttonText}>Create Task</Text>
+          <TouchableOpacity onPress={() => handleDateIconPress('to')}>
+            <Ionicons name="calendar-outline" size={22} color="#007AFF" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.button} onPress={onClose}>
-            <Text style={styles.buttonText}>Close</Text>
-          </TouchableOpacity>
-          {showDatePicker && (
-            <DateTimePicker
-              value={pickerDate}
-              mode="date"
-              display="default"
-              onChange={onDateChange}
-            />
-          )}
         </View>
       </View>
-    </Modal>
+
+      <TextInput
+        style={styles.input}
+        placeholder="Description"
+        value={description}
+        onChangeText={setDescription}
+      />
+
+      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
+        <Text style={styles.buttonText}>Create Task</Text>
+      </TouchableOpacity>
+
+      {showDatePicker && (
+        <DateTimePicker
+          value={pickerDate}
+          mode="date"
+          display="default"
+          onChange={onDateChange}
+        />
+      )}
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    zIndex: 1,
-  },
-  animatedContainer: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    zIndex: 2,
-  },
   modal: {
-    height: '50%',
-    width: '100%',
     backgroundColor: 'white',
     padding: 20,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 8,
   },
   title: {
     fontSize: 18,

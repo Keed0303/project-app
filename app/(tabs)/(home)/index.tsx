@@ -1,15 +1,16 @@
 import CreateTaskModal from '@/app/create-task-modal';
+import ViewTask from '@/app/view-task';
 import FabButton from '@/components/FabButton';
 import Header from '@/components/Header';
+import { useTasks } from '@/hooks/useTask';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import BottomSheet, { BottomSheetBackdrop, BottomSheetView } from '@gorhom/bottom-sheet';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { Router, useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
 interface TaskProps {
-  id: Date,
+  id: string,
   title: string,
   from: string,
   to: string,
@@ -17,104 +18,132 @@ interface TaskProps {
 }
 
 const index = () => {
-  const [todoTask, SetTodoTask] = React.useState('');
-  const [tasks, setTasks] = React.useState<TaskProps[]>([]);
-  const [modalVisible, setModalVisible] = React.useState(false);
-  const [showDatePicker, setShowDatePicker] = React.useState(false);
-  const [selectedDate, setSelectedDate] = React.useState<Date | null>(null);
 
-  const router: Router = useRouter();
+  const { tasks, selectedTask, setSelectedTask } = useTasks();
 
-  const handleCreateTask = async (task: any) => {
-    const newTasks = [...tasks, task];
-    setTasks(newTasks);
-    await AsyncStorage.setItem('tasks', JSON.stringify(newTasks));
-    setModalVisible(false);
-  };
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [fabVisible, setFabVisible] = useState(true);
+
+  const BottomSheetRef = useRef<BottomSheet>(null);
+  const FormSheetRef = useRef<BottomSheet>(null);
+
+  const snapPoints = useMemo(() => ['25%', '40%', '70%'], []);
+  const formSnapPoints = useMemo(() => ['25%', '50%', '70%'], []);
+
+  const backDrop = useCallback(
+  (props: any) => (
+    <BottomSheetBackdrop {...props} appearsOnIndex={0} disappearsOnIndex={-1} />
+  ),[]);
 
   const onDateChange = (event: any, date?: Date) => {
     setShowDatePicker(false);
     if (date) setSelectedDate(date);
   };
 
-  const routeViewTaskItem = (task: TaskProps) => {
-    router.push({
-      pathname: '/[id]',
-      params: { id: String(task.id), title: task.title, from: task.from, to: task.to, description: task.description }
-    });
-  }
+  const routeViewTaskItem = (task: any) => {
+    setSelectedTask(task);
+    BottomSheetRef.current?.expand();
+    BottomSheetRef.current?.snapToIndex(1);
+  };
 
-  useEffect(() => {
-    // Load tasks from local storage or API
-    const loadTasks = async () => {
-      const storedTasks = await AsyncStorage.getItem('tasks');
-      if (storedTasks) {
-        setTasks(JSON.parse(storedTasks));
-      }
-    };
-
-    loadTasks();
-
-    // clean
-    return () => {
-      setTasks([]);
-    };
-
-  }, []);
-  
-  console.log(tasks);
+  const createTask = () => {
+    setFabVisible(false);
+    FormSheetRef.current?.expand();
+    FormSheetRef.current?.snapToIndex(1);
+  };
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', margin: 16 }}>
+    <>
+      <View style={{ flex: 1, alignItems: "center", margin: 16 }}>
+        <Header title="Home" />
 
-      <Header title="Home"/>
+        <View style={{ backgroundColor: "white", borderRadius: 8, elevation: 2, margin: 16, width: "100%" }}>
+          <Text style={{ padding: 16 }}>List Todos</Text>
+        </View>
 
-      {/* Card */}
-      <View style={{ backgroundColor: 'white', borderRadius: 8, elevation: 2, margin: 16, width: '100%' }}>
-        <Text style={{ padding: 16 }}>List Todos</Text>
+        {tasks.map((task) => (
+          <View
+            key={task.id}
+            style={{
+              padding: 16,
+              marginHorizontal: 16,
+              marginVertical: 8,
+              borderRadius: 12,
+              backgroundColor: "#e8ecfdff",
+              width: "100%",
+            }}
+            onTouchEnd={() => routeViewTaskItem(task)}
+          >
+            <View style={styles.headerContainer}>
+              <View style={styles.iconContainer}>
+                <Ionicons
+                  name="business-outline"
+                  size={32}
+                  color="#3b2dffff"
+                  onPress={() => setShowDatePicker(true)}
+                />
+              </View>
+              <View style={styles.headerContent}>
+                <Text style={{ fontSize: 14, color: "#565656ff" }}>{task.title}</Text>
+                <Text style={{ fontSize: 21, fontWeight: "bold", lineHeight: 35 }}>
+                  {task.description}
+                </Text>
+              </View>
+            </View>
+            <Text style={{ textAlign: "right" }}>
+              {task.from} - {task.to}
+            </Text>
+          </View>
+        ))}
+
+        {showDatePicker && (
+          <DateTimePicker
+            value={selectedDate || new Date()}
+            mode="date"
+            display="default"
+            onChange={onDateChange}
+          />
+        )}
+
+        {fabVisible && <FabButton onPress={createTask} />}
       </View>
 
-      {tasks.map((task: any) => (
-        <View
-          key={task.id}
-          style={{ padding: 16, marginHorizontal: 16, marginVertical: 8, borderRadius: 12, backgroundColor: '#e8ecfdff', width: '100%' }}
-          onTouchEnd={() => routeViewTaskItem(task)}
-        >
-          <View style={styles.headerContainer}>
-            <View style={styles.iconContainer}>
-              <Ionicons
-                name="business-outline"
-                size={32}
-                color="#3b2dffff"
-                onPress={() => setShowDatePicker(true)}
-              />
-            </View>
-            <View style={styles.headerContent}>
-              <Text style={{ fontSize: 14, color: '#565656ff' }}>{task.title}</Text>
-              <Text style={{ fontSize: 21, fontWeight: 'bold', lineHeight: 35 }}>{task.description}</Text>
-            </View>
-          </View>
-          <Text style={{ textAlign: 'right' }}>{task.from} - {task.to}</Text>
-        </View>
-      ))}
+      {/* View Task */}
+      <BottomSheet
+        snapPoints={snapPoints}
+        ref={BottomSheetRef}
+        index={-1}
+        enablePanDownToClose={false}
+        handleIndicatorStyle={{ backgroundColor: "#000" }}
+        backdropComponent={backDrop}
+      >
+        <BottomSheetView style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <ViewTask
+            id={selectedTask?.id}
+            title={selectedTask?.title}
+            description={selectedTask?.description}
+            from={selectedTask?.from}
+            to={selectedTask?.to}
+          />
+        </BottomSheetView>
+      </BottomSheet>
 
-
-
-      {/* Date Picker */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={selectedDate || new Date()}
-          mode="date"
-          display="default"
-          onChange={onDateChange}
-        />
-      )}
-
-      {/* Fab Button: Start */}
-      <FabButton onPress={() => setModalVisible(true)} />
-      {/* Fab Button: End */}
-      <CreateTaskModal visible={modalVisible} onClose={() => setModalVisible(false)} onCreate={handleCreateTask} />
-    </View>
+      {/* Create Task */}
+      <BottomSheet
+        snapPoints={formSnapPoints}
+        ref={FormSheetRef}
+        index={-1}
+        enablePanDownToClose={false}
+        handleIndicatorStyle={{ backgroundColor: "#000" }}
+        backdropComponent={backDrop}
+        onClose={() => setFabVisible(true)}
+      >
+        <BottomSheetView style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+          <CreateTaskModal />
+        </BottomSheetView>
+      </BottomSheet>
+    </>
   )
 }
 
